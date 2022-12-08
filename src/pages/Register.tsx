@@ -2,6 +2,7 @@ import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as zod from 'zod'
 import * as openpgp from 'openpgp'
+import CryptoJS from 'crypto-js'
 
 import { api } from '../lib/axios'
 
@@ -30,6 +31,8 @@ export function Register() {
   const { handleSubmit, watch, reset, register } = newUserForm
 
   async function createUser(data: NewUserFormData) {
+    data.password = CryptoJS.MD5(data.password).toString()
+
     const { privateKey, publicKey, revocationCertificate } =
       await openpgp.generateKey({
         type: 'ecc', // Type of the key, defaults to ECC
