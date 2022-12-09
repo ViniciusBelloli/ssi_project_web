@@ -22,24 +22,27 @@ export function Login() {
     },
   })
 
-  const { handleSubmit, watch, register } = loginForm
+  const { handleSubmit, watch, reset, register } = loginForm
 
   const navigate = useNavigate()
 
-  async function handleLoginUser(data: LoginFormData) {
+  async function loginUser(data: LoginFormData) {
     // localStorage.setItem('@encrypted-chat:user-pkey-1.0.0', privateKey)
     data.password = CryptoJS.MD5(data.password).toString()
 
     const response = await api.post('/auth', data)
-    console.log(response)
 
-    navigate('/dashboard')
+    if (response.status === 200) {
+      navigate('/messages')
+    } else {
+      alert('Password or email incorrect')
+    }
   }
 
-  // function handleLoginUser(data: LoginFormData) {
-  //   createUser(data)
-  //   reset()
-  // }
+  function handleLoginUser(data: LoginFormData) {
+    loginUser(data)
+    reset()
+  }
 
   const email = watch('email')
   const password = watch('password')

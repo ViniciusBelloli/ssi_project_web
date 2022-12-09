@@ -1,5 +1,7 @@
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useNavigate } from 'react-router-dom'
+import { Buffer } from 'buffer'
 import * as zod from 'zod'
 import * as openpgp from 'openpgp'
 import CryptoJS from 'crypto-js'
@@ -28,6 +30,8 @@ export function Register() {
     },
   })
 
+  const navigate = useNavigate()
+
   const { handleSubmit, watch, reset, register } = newUserForm
 
   async function createUser(data: NewUserFormData) {
@@ -42,13 +46,19 @@ export function Register() {
         format: 'armored', // output key format, defaults to 'armored' (other options: 'binary' or 'object')
       })
 
-    data.userPublicKey = publicKey
-    data.userRevokeKey = revocationCertificate
+    data.userPublicKey = Buffer.from(publicKey).toString('base64')
+    data.userRevokeKey = Buffer.from(revocationCertificate).toString('base64')
+    const privateBase = Buffer.from(privateKey).toString('base64')
 
-    localStorage.setItem('@encrypted-chat:user-pkey-1.0.0', privateKey)
+    localStorage.setItem('@encrypted-chat:user-pkey-1.0.0', privateBase)
 
     const response = await api.post('/users', data)
-    console.log(response)
+
+    if (response.status === 201) {
+      navigate('/')
+    } else {
+      alert('Erro ao criar usuário')
+    }
   }
 
   function handleCreateNewUser(data: NewUserFormData) {

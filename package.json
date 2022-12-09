@@ -12,6 +12,7 @@
   "dependencies": {
     "@hookform/resolvers": "^2.9.10",
     "axios": "^1.2.1",
+    "buffer": "^6.0.3",
     "crypto-js": "^4.1.1",
     "openpgp": "^5.5.0",
     "react": "^18.2.0",
