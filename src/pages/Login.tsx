@@ -4,14 +4,14 @@ import * as zod from 'zod'
 import { useNavigate } from 'react-router-dom'
 import CryptoJS from 'crypto-js'
 
-import { api } from '../lib/axios'
+import AuthService from '../services/auth.service'
 
 const loginFormValidationSchema = zod.object({
   email: zod.string().min(1, 'Informe o email'),
   password: zod.string().min(1, 'Informe sua senha'),
 })
 
-type LoginFormData = zod.infer<typeof loginFormValidationSchema>
+export type LoginFormData = zod.infer<typeof loginFormValidationSchema>
 
 export function Login() {
   const loginForm = useForm<LoginFormData>({
@@ -30,7 +30,7 @@ export function Login() {
     // localStorage.setItem('@encrypted-chat:user-pkey-1.0.0', privateKey)
     data.password = CryptoJS.MD5(data.password).toString()
 
-    const response = await api.post('/auth', data)
+    const response = await AuthService.login(data)
 
     if (response.status === 200) {
       navigate('/messages')

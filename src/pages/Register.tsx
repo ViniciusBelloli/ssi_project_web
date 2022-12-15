@@ -5,8 +5,7 @@ import { Buffer } from 'buffer'
 import * as zod from 'zod'
 import * as openpgp from 'openpgp'
 import CryptoJS from 'crypto-js'
-
-import { api } from '../lib/axios'
+import AuthService from '../services/auth.service'
 
 const newUserFormValidationSchema = zod.object({
   name: zod.string().min(1, 'Informe o usuário'),
@@ -16,7 +15,7 @@ const newUserFormValidationSchema = zod.object({
   userRevokeKey: zod.string(),
 })
 
-type NewUserFormData = zod.infer<typeof newUserFormValidationSchema>
+export type NewUserFormData = zod.infer<typeof newUserFormValidationSchema>
 
 export function Register() {
   const newUserForm = useForm<NewUserFormData>({
@@ -50,9 +49,33 @@ export function Register() {
     data.userRevokeKey = Buffer.from(revocationCertificate).toString('base64')
     const privateBase = Buffer.from(privateKey).toString('base64')
 
-    localStorage.setItem('@encrypted-chat:user-pkey-1.0.0', privateBase)
+    const response = await AuthService.register(data)
 
-    const response = await api.post('/users', data)
+    let privateObject = []
+    const privateSaved = JSON.parse(
+      localStorage.getItem('@encrypted-chat:user-pkey-1.0.0') || '[]',
+    )
+
+    if (privateSaved) {
+      privateObject = privateSaved
+
+      privateObject.push({
+        idUser: response.data.id,
+        privateBaseKey: privateBase,
+        privateBasePass: data.password,
+      })
+    } else {
+      privateObject.push({
+        idUser: response.data.id,
+        privateBaseKey: privateBase,
+        privateBasePass: data.password,
+      })
+    }
+
+    localStorage.setItem(
+      '@encrypted-chat:user-pkey-1.0.0',
+      JSON.stringify(privateObject),
+    )
 
     if (response.status === 201) {
       navigate('/')
