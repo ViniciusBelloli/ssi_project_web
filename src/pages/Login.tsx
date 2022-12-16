@@ -1,9 +1,11 @@
+import { useContext } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as zod from 'zod'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import CryptoJS from 'crypto-js'
 
+import { ChatContext } from '../contexts/ChatContext'
 import AuthService from '../services/auth.service'
 
 const loginFormValidationSchema = zod.object({
@@ -25,6 +27,7 @@ export function Login() {
   const { handleSubmit, watch, reset, register } = loginForm
 
   const navigate = useNavigate()
+  const { updateUserData } = useContext(ChatContext)
 
   async function loginUser(data: LoginFormData) {
     // localStorage.setItem('@encrypted-chat:user-pkey-1.0.0', privateKey)
@@ -40,8 +43,13 @@ export function Login() {
   }
 
   function handleLoginUser(data: LoginFormData) {
-    loginUser(data)
-    reset()
+    loginUser(data).then((response) => {
+      const user = JSON.parse(
+        localStorage.getItem('@encrypted-chat:user-1.0.0') || '{}',
+      )
+      updateUserData(user)
+      reset()
+    })
   }
 
   const email = watch('email')
@@ -50,7 +58,21 @@ export function Login() {
 
   return (
     <div className="flex flex-col h-screen justify-between">
-      <div className="mb-auto flex items-center justify-center min-h-screen">
+      <div>
+        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+          Sign in to your account
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Or{' '}
+          <Link
+            to={'/register'}
+            className="font-medium text-indigo-600 hover:text-indigo-500"
+          >
+            create your account now!
+          </Link>
+        </p>
+      </div>
+      <div className="mb-auto flex items-center justify-center">
         <div className="px-8 py-6 mx-4 mt-4 text-left bg-white shadow-lg rounded-lg md:w-1/3 lg:w-1/3 sm:w-1/3">
           <form
             onSubmit={handleSubmit(handleLoginUser)}

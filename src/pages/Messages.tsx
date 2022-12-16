@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from 'react'
 import { PaperPlaneRight } from 'phosphor-react'
 import { Buffer } from 'buffer'
+import { useNavigate } from 'react-router-dom'
 import UserService from '../services/user.service'
 import * as openpgp from 'openpgp'
 import { io } from 'socket.io-client'
 import { host } from '../lib/axios'
-import { produce } from 'immer'
+import AuthService from '../services/auth.service'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 
 const latestUserMessage = localStorage.getItem(
   '@encrypted-chat:latest-user-message-1.0.0',
@@ -40,6 +42,16 @@ export function Messages() {
   const [arrivalMessage, setArrivalMessage] = useState<MessageProps>(
     {} as MessageProps,
   )
+  const navigate = useNavigate()
+
+  function str2ab(str) {
+    const buf = new ArrayBuffer(str.length)
+    const bufView = new Uint8Array(buf)
+    for (let i = 0, strLen = str.length; i < strLen; i++) {
+      bufView[i] = str.charCodeAt(i)
+    }
+    return buf
+  }
 
   async function onHandleMessageSend(messageSended: string) {
     const privateSaved = JSON.parse(
@@ -158,6 +170,16 @@ export function Messages() {
     return decrypted.toString()
   }
 
+  function logout() {
+    AuthService.logout()
+    navigate('/')
+  }
+
+  function onHandleUserSelect(userId: string) {
+    localStorage.setItem('@encrypted-chat:latest-user-message-1.0.0', userId)
+    setIdSelected(userId)
+  }
+
   useEffect(() => {
     if (idSelected) {
       socket.current = io(host)
@@ -180,45 +202,42 @@ export function Messages() {
   }, [])
 
   useEffect(() => {
-    const dataPost = {
-      userFrom: user.id,
-      userReceive: idSelected,
-    }
-
     async function getData() {
+      const dataPost = {
+        userFrom: user.id,
+        userReceive: idSelected,
+      }
+
       const dataReceive: MessageProps[] = []
       const respMessages = await UserService.getMessages(dataPost)
 
-      if (messageList.length > 0) {
-        return
-      }
+      // if (messageList.length > 0) {
+      //   return
+      // }
+      await Promise.all(
+        respMessages.data.map(async (respMessage: any) => {
+          const decryptedMessage = await decryptMessage(
+            respMessage.message,
+            respMessage.userFrom,
+          )
 
-      respMessages.data.forEach(async (respMessage: any) => {
-        const decryptedMessage = await decryptMessage(
-          respMessage.message,
-          respMessage.userFrom,
-        )
+          dataReceive.push({
+            userFrom: respMessage.userFrom,
+            userReceive: respMessage.userReceive,
+            message: decryptedMessage || '',
+            createdAt: respMessage.createdAt,
+          })
+        }),
+      )
 
-        dataReceive.push({
-          userFrom: respMessage.userFrom,
-          userReceive: respMessage.userReceive,
-          message: decryptedMessage || '',
-          createdAt: respMessage.createdAt,
-        })
-      })
-
-      setMessageList([])
       setMessageList(dataReceive)
     }
 
     getData()
   }, [idSelected])
 
-  // console.log(messageList)
-
   useEffect(() => {
     if (socket.current) {
-      // console.log(socket.current)
       socket.current.on('msg-recieved', (msg) => {
         setArrivalMessage({
           userFrom: msg.userFrom,
@@ -247,9 +266,26 @@ export function Messages() {
             className="rounded-2xl bg-gray-100 py-3 px-5 w-full"
           />
         </div>
-        <div className="h-12 w-12 p-2 bg-yellow-500 rounded-full text-white font-semibold flex items-center justify-center">
-          RA
-        </div>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <div className="h-12 w-12 p-2 bg-yellow-500 rounded-full text-white font-semibold flex items-center justify-center">
+              {user.userName.substring(0, 2).toUpperCase()}
+            </div>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              className="bg-white rounded-md shadow-lg p-4"
+              sideOffset={5}
+            >
+              <DropdownMenu.Item
+                onClick={logout}
+                className="text-sm leading-3 flex items-center justify-center outline-none rounded cursor-pointer"
+              >
+                Logout
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
       </div>
 
       {/* users and messages */}
@@ -267,10 +303,14 @@ export function Messages() {
             const selectedClass =
               idSelected === user.id
                 ? 'flex flex-row py-4 px-2 items-center border-b-2 border-l-4 border-blue-400'
-                : 'flex flex-row py-4 px-2 justify-center items-center border-b-2'
+                : 'flex flex-row py-4 px-2 justify-center items-center border-b-2 cursor-pointer'
 
             return (
-              <div className={selectedClass} key={user.id}>
+              <div
+                className={selectedClass}
+                key={user.id}
+                onClick={(e) => onHandleUserSelect(user.id)}
+              >
                 <div className="w-1/4">
                   <img
                     src="https://t3.ftcdn.net/jpg/02/09/37/00/360_F_209370065_JLXhrc5inEmGl52SyvSPeVB23hB6IjrR.jpg"

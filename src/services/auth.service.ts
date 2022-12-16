@@ -17,7 +17,8 @@ class AuthService {
   }
 
   logout() {
-    localStorage.removeItem('user')
+    localStorage.removeItem('@encrypted-chat:user-1.0.0')
+    localStorage.removeItem('@encrypted-chat:latest-user-message-1.0.0')
   }
 
   async register(request: NewUserFormData) {
