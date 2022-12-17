@@ -10,10 +10,10 @@ export default defineConfig({
   server: {
     port: 9000,
     strictPort: true,
-    https: false,
+    host: true,
     hmr: {
       host: '172.22.56.176',
-      port: 80,
+      port: 3000,
       protocol: 'wss',
     },
   },
