@@ -104,7 +104,7 @@ export function Messages() {
 
     UserService.postMessage(dataPost)
       .then((response) => response.data)
-      .then((data) => {
+      .then(async (data: MessageProps) => {
         socket.current.emit('send-msg', {
           userFrom: idSelected,
           userReceive: user.id,
@@ -112,8 +112,22 @@ export function Messages() {
           createdAt: data.createdAt,
         })
 
+        console.log(data)
+        const decryptedMessage = await decryptMessage(
+          data.message,
+          data.userFrom,
+        )
+
+        const dataAddArray = {
+          userFrom: data.userFrom,
+          userReceive: data.userReceive,
+          message: decryptedMessage || '',
+          createdAt: data.createdAt,
+        }
+
         setMessage('')
         setIdSelected(idSelected)
+        setMessageList((prev) => [...prev, dataAddArray])
       })
   }
 
