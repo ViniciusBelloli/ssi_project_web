@@ -1,11 +1,9 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { PaperPlaneRight } from 'phosphor-react'
 import { Buffer } from 'buffer'
 import { useNavigate } from 'react-router-dom'
 import UserService from '../services/user.service'
 import * as openpgp from 'openpgp'
-import { io } from 'socket.io-client'
-import { host } from '../lib/axios'
 import AuthService from '../services/auth.service'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 
@@ -34,24 +32,11 @@ interface MessageProps {
 }
 
 export function Messages() {
-  const socket = useRef()
   const [users, setUsers] = useState<UserResponseProps[]>([])
   const [message, setMessage] = useState('')
   const [idSelected, setIdSelected] = useState(latestUserMessage || '')
   const [messageList, setMessageList] = useState<MessageProps[]>([])
-  const [arrivalMessage, setArrivalMessage] = useState<MessageProps>(
-    {} as MessageProps,
-  )
   const navigate = useNavigate()
-
-  function str2ab(str) {
-    const buf = new ArrayBuffer(str.length)
-    const bufView = new Uint8Array(buf)
-    for (let i = 0, strLen = str.length; i < strLen; i++) {
-      bufView[i] = str.charCodeAt(i)
-    }
-    return buf
-  }
 
   async function onHandleMessageSend(messageSended: string) {
     const privateSaved = JSON.parse(
@@ -105,14 +90,6 @@ export function Messages() {
     UserService.postMessage(dataPost)
       .then((response) => response.data)
       .then(async (data: MessageProps) => {
-        socket.current.emit('send-msg', {
-          userFrom: idSelected,
-          userReceive: user.id,
-          message: dataPost.message,
-          createdAt: data.createdAt,
-        })
-
-        console.log(data)
         const decryptedMessage = await decryptMessage(
           data.message,
           data.userFrom,
@@ -195,13 +172,6 @@ export function Messages() {
   }
 
   useEffect(() => {
-    if (idSelected) {
-      socket.current = io(host)
-      socket.current.emit('add-user', idSelected)
-    }
-  }, [idSelected])
-
-  useEffect(() => {
     UserService.getUsers(user.id)
       .then((response) => response.data)
       .then((data) => {
@@ -249,23 +219,6 @@ export function Messages() {
 
     getData()
   }, [idSelected])
-
-  useEffect(() => {
-    if (socket.current) {
-      socket.current.on('msg-recieved', (msg) => {
-        setArrivalMessage({
-          userFrom: msg.userFrom,
-          userReceive: msg.userReceive,
-          createdAt: msg.createdAt,
-          message: msg.message,
-        })
-      })
-    }
-  }, [])
-
-  useEffect(() => {
-    arrivalMessage && setMessageList((prev) => [...prev, arrivalMessage])
-  }, [arrivalMessage])
 
   return (
     <div className="container mx-auto shadow-lg rounded-lg">
